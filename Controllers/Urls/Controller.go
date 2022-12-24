@@ -25,19 +25,30 @@ func Index(c *gin.Context) {
 
 	db.Preload("States").Model(url).Scopes(Connection.Paginate(c.Request)).Find(&urls)
 
+	// create response
 	type Response struct {
-		Id        uint
-		Short_url string
-		Full_url  string
+		Id          uint   `json:"id"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		Short_url   string `json:"short_url"`
+		Full_url    string `json:"full_url"`
+		Clicked     int    `json:"clicked"`
+		CreatedAt   string `json:"created_at"`
+		UpdatedAt   string `json:"updated_at"`
 	}
 
 	var response []Response
 
 	for _, url := range urls {
 		response = append(response, Response{
-			Id:        url.ID,
-			Short_url: h.Getenv("BASE_SHORT_URL", "jajiga.com") + "/" + url.ShortUrl,
-			Full_url:  h.Getenv("BASE_FULL_URL", "https://www.jajiga.com") + "/" + url.FullUrl,
+			Id:          url.ID,
+			Title:       url.Title,
+			Description: url.Description,
+			Short_url:   h.Getenv("BASE_SHORT_URL", "jajiga.com") + "/" + url.ShortUrl,
+			Full_url:    h.Getenv("BASE_FULL_URL", "https://www.jajiga.com") + "/" + url.FullUrl,
+			Clicked:     len(url.States),
+			CreatedAt:   url.CreatedAt.Format("2006-01-02 15:04:05"),
+			UpdatedAt:   url.UpdatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
 
@@ -133,12 +144,7 @@ func Update(c *gin.Context) {
 	id := c.Param("id")
 	url := Connection.Url{}
 	result := db.Where("id = ?", id).First(&url)
-	if result.Error != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{
-			"message": "Error",
-		})
-		return
-	} else if result.RowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		c.JSON(http.StatusNotFound, gin.H{
 			"message": "Url not found",
 		})
@@ -174,9 +180,33 @@ func Update(c *gin.Context) {
 	// update in redis
 	go saveInRedis(url)
 
+	// create response
+	type Response struct {
+		Id          uint   `json:"id"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		Short_url   string `json:"short_url"`
+		Full_url    string `json:"full_url"`
+		Clicked     int    `json:"clicked"`
+		CreatedAt   string `json:"created_at"`
+		UpdatedAt   string `json:"updated_at"`
+	}
+
+	var response []Response
+	response = append(response, Response{
+		Id:          url.ID,
+		Title:       url.Title,
+		Description: url.Description,
+		Short_url:   h.Getenv("BASE_SHORT_URL", "jajiga.com") + "/" + url.ShortUrl,
+		Full_url:    h.Getenv("BASE_FULL_URL", "https://www.jajiga.com") + "/" + url.FullUrl,
+		Clicked:     len(url.States),
+		CreatedAt:   url.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:   url.UpdatedAt.Format("2006-01-02 15:04:05"),
+	})
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Item updated",
-		"data":    url,
+		"data":    response,
 	})
 }
 
