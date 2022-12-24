@@ -56,6 +56,24 @@ func Connection() *gorm.DB {
 	return db
 }
 
+func testConnection() *gorm.DB {
+	host := h.Getenv("DB_HOST", "127.0.0.2")
+	port := h.Getenv("DB_PORT", "5432")
+	user := h.Getenv("DB_USER", "postgres")
+	password := h.Getenv("DB_PASSWORD", "postgres")
+	sslmode := h.Getenv("DB_SSLMODE", "disable")
+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s sslmode=%s", host, port, user, password, sslmode)
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		// Logger: logger.Default.LogMode(logger.Silent),
+	})
+
+	CheckError(err)
+
+	return db
+}
+
 func CheckError(err error) {
 	if err != nil {
 		panic(err)

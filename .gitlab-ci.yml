@@ -22,7 +22,7 @@ push:
   services:
     - docker:dind
   script:
-    # - docker login -u ${registry_user} -p ${registry_pass} ${REGISTRY_ADDRESS}
+    - docker login -u ${registry_user} -p ${registry_pass} ${REGISTRY_ADDRESS}
     - docker pull $IMAGE_DIR:latest || true
     - docker build --cache-from $IMAGE_DIR:latest --file ./Dockerfile  --tag $IMAGE_DIR:latest .
     - docker push $IMAGE_DIR:latest
