@@ -1,0 +1,29 @@
+
+variables:
+  REGISTRY_ADDRESS: registry.jajiga.com:5000
+  IMAGE_DIR: $REGISTRY_ADDRESS/shorjiga/$CI_COMMIT_REF_NAME
+
+stages:
+  - test
+  - push
+
+test:
+  stage: test
+  image: golang:latest
+  script:
+    - go fmt $(go list ./... | grep -v /vendor/)
+    - go vet $(go list ./... | grep -v /vendor/)
+    - go test -race $(go list ./... | grep -v /vendor/)
+  allow_failure: true
+
+push:
+  stage: push
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    # - docker login -u ${registry_user} -p ${registry_pass} ${REGISTRY_ADDRESS}
+    - docker pull $IMAGE_DIR:latest || true
+    - docker build --cache-from $IMAGE_DIR:latest --file ./Dockerfile  --tag $IMAGE_DIR:latest .
+    - docker push $IMAGE_DIR:latest
+    - docker image prune --all --force
