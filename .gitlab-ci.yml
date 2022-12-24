@@ -22,6 +22,9 @@ build:
   script:
     - go build -o main .
   allow_failure: true
+  artifacts:
+    paths:
+      - main
 
 push:
   stage: push
