@@ -20,7 +20,7 @@ build:
   stage: build
   image: golang:latest
   script:
-    - RUN go build -o main .
+    - go build -o main .
   allow_failure: true
 
 push:
