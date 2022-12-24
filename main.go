@@ -30,19 +30,19 @@ func main() {
 	// Recovery middleware recovers from any panics and writes a 500 if there was one.
 	r.Use(gin.Recovery())
 
-	authorized := r.Group("/")
+	authorized := r.Group("/l")
 	// per group middleware! in this case we use the custom created
 	// AuthRequired() middleware just in the "authorized" group.
 	authorized.Use(middleware.Handle)
 	{
-		authorized.GET("/l/", UrlController.Index)
-		authorized.POST("/l/", UrlController.Store)
-		authorized.PUT("/l/:id", UrlController.Update)
-		// authorized.GET("/:id", UrlController.Show) // TODO: validate id type
-		authorized.DELETE("/l/:id", UrlController.Destroy)
+		authorized.GET("/", UrlController.Index)
+		authorized.POST("/", UrlController.Store)
+		authorized.PUT("/:id", UrlController.Update)
+		authorized.GET("/show/:id", UrlController.Show) // TODO: validate id type
+		authorized.DELETE("/:id", UrlController.Destroy)
 	}
 
-	r.GET("/:url", UrlController.Redirect)
+	r.GET("/l/:url", UrlController.Redirect)
 
 	r.Run("0.0.0.0:9090")
 }
