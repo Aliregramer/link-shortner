@@ -35,11 +35,11 @@ func main() {
 	// AuthRequired() middleware just in the "authorized" group.
 	authorized.Use(middleware.Handle)
 	{
-		authorized.GET("/", UrlController.Index)
-		authorized.POST("/", UrlController.Store)
-		authorized.PUT("/:id", UrlController.Update)
+		authorized.GET("/l/", UrlController.Index)
+		authorized.POST("/l/", UrlController.Store)
+		authorized.PUT("/l/:id", UrlController.Update)
 		// authorized.GET("/:id", UrlController.Show) // TODO: validate id type
-		authorized.DELETE("/:id", UrlController.Destroy)
+		authorized.DELETE("/l/:id", UrlController.Destroy)
 	}
 
 	r.GET("/:url", UrlController.Redirect)
