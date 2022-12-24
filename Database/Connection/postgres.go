@@ -25,7 +25,7 @@ type Url struct {
 
 type State struct {
 	gorm.Model
-	UrlID     uint   `json:"url_id" gorm:"Index" gorm:"ForeignKey:users_id"`
+	UrlID     uint   `json:"url_id" gorm:"Index" gorm:"ForeignKey:urls_id"`
 	Ip        string `json:"ip" gorm:"Index"`
 	UserAgent string `json:"user_agent" gorm:"Index"`
 }

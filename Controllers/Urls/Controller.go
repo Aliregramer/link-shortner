@@ -27,14 +27,14 @@ func Index(c *gin.Context) {
 
 	// create response
 	type Response struct {
-		Id          uint   `json:"id"`
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		Short_url   string `json:"short_url"`
-		Full_url    string `json:"full_url"`
-		Clicked     int    `json:"clicked"`
-		CreatedAt   string `json:"created_at"`
-		UpdatedAt   string `json:"updated_at"`
+		Id          uint      `json:"id"`
+		Title       string    `json:"title"`
+		Description string    `json:"description"`
+		Short_url   string    `json:"short_url"`
+		Full_url    string    `json:"full_url"`
+		Clicked     int       `json:"clicked"`
+		CreatedAt   time.Time `json:"created_at"`
+		UpdatedAt   time.Time `json:"updated_at"`
 	}
 
 	var response []Response
@@ -47,8 +47,8 @@ func Index(c *gin.Context) {
 			Short_url:   h.Getenv("BASE_SHORT_URL", "jajiga.com") + "/" + url.ShortUrl,
 			Full_url:    h.Getenv("BASE_FULL_URL", "https://www.jajiga.com") + "/" + url.FullUrl,
 			Clicked:     len(url.States),
-			CreatedAt:   url.CreatedAt.Format("2006-01-02 15:04:05"),
-			UpdatedAt:   url.UpdatedAt.Format("2006-01-02 15:04:05"),
+			CreatedAt:   url.CreatedAt,
+			UpdatedAt:   url.UpdatedAt,
 		})
 	}
 
@@ -123,20 +123,49 @@ func Show(c *gin.Context) {
 	id := c.Param("id")
 	url := Connection.Url{}
 	result := db.Where("id = ?", id).First(&url)
-	if result.Error != nil {
-		c.JSON(http.StatusUnprocessableEntity, gin.H{
-			"message": "Error",
-		})
-		return
-	} else if result.RowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		c.JSON(http.StatusNotFound, gin.H{
 			"message": "Url not found",
 		})
 		return
 	}
 
+	type StateResponse struct {
+		Ip        string `json:"ip"`
+		UserAgent string `json:"user_agent"`
+		CreatedAt string `json:"created_at"`
+	}
+
+	states := []Connection.State{}
+	statesResponse := []StateResponse{}
+	db.Model(states).Where("url_id = ?", id).Order("created_at desc").Limit(100).Find(&statesResponse)
+
+	// create response
+	type Response struct {
+		Id          uint            `json:"id"`
+		Title       string          `json:"title"`
+		Description string          `json:"description"`
+		Short_url   string          `json:"short_url"`
+		Full_url    string          `json:"full_url"`
+		CreatedAt   time.Time       `json:"created_at"`
+		UpdatedAt   time.Time       `json:"updated_at"`
+		Clicked     int             `json:"clicked"`
+		State       []StateResponse `json:"state"`
+	}
+	response := Response{
+		Id:          url.ID,
+		Title:       url.Title,
+		Description: url.Description,
+		Short_url:   h.Getenv("BASE_SHORT_URL", "jajiga.com") + "/" + url.ShortUrl,
+		Full_url:    h.Getenv("BASE_FULL_URL", "https://www.jajiga.com") + "/" + url.FullUrl,
+		Clicked:     len(statesResponse),
+		State:       statesResponse,
+		CreatedAt:   url.CreatedAt,
+		UpdatedAt:   url.UpdatedAt,
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"data": url,
+		"data": response,
 	})
 }
 
@@ -182,14 +211,14 @@ func Update(c *gin.Context) {
 
 	// create response
 	type Response struct {
-		Id          uint   `json:"id"`
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		Short_url   string `json:"short_url"`
-		Full_url    string `json:"full_url"`
-		Clicked     int    `json:"clicked"`
-		CreatedAt   string `json:"created_at"`
-		UpdatedAt   string `json:"updated_at"`
+		Id          uint      `json:"id"`
+		Title       string    `json:"title"`
+		Description string    `json:"description"`
+		Short_url   string    `json:"short_url"`
+		Full_url    string    `json:"full_url"`
+		Clicked     int       `json:"clicked"`
+		CreatedAt   time.Time `json:"created_at"`
+		UpdatedAt   time.Time `json:"updated_at"`
 	}
 
 	var response []Response
@@ -200,8 +229,8 @@ func Update(c *gin.Context) {
 		Short_url:   h.Getenv("BASE_SHORT_URL", "jajiga.com") + "/" + url.ShortUrl,
 		Full_url:    h.Getenv("BASE_FULL_URL", "https://www.jajiga.com") + "/" + url.FullUrl,
 		Clicked:     len(url.States),
-		CreatedAt:   url.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt:   url.UpdatedAt.Format("2006-01-02 15:04:05"),
+		CreatedAt:   url.CreatedAt,
+		UpdatedAt:   url.UpdatedAt,
 	})
 
 	c.JSON(http.StatusOK, gin.H{
