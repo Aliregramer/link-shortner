@@ -32,6 +32,7 @@ test:
     - go test
   allow_failure: true
 
+
 build:
   stage: build
   image: golang:latest
@@ -43,7 +44,6 @@ build:
       - main
   only:
     - main
-    - merge_requests
 
 push:
   stage: push
@@ -58,4 +58,3 @@ push:
     - docker image prune --all --force
   only:
     - main
-    - merge_requests
