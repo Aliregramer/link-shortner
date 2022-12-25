@@ -13,20 +13,23 @@ test:
   services:
     - name: postgres:14
       alias: pgsql
-    - name: redis
+    - name: redis:alpine
       alias: redis
   variables:
-    DB_HOST: shorjiga_test
-    DB_PORT: 5432
-    DB_USER: postgres
-    DB_PASSWORD: postgres
+    POSTGRES_DB: shorjiga_test
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: password
     POSTGRES_HOST_AUTH_METHOD: trust
     REDIS_HOST: redis
-    REDIS_PORT: 6379
+
+    DB_HOST: pgsql
+    DB_NAME: shorjiga_test
+    DB_USER: postgres
+    DB_PASSWORD: password
   script:
     - go fmt $(go list ./... | grep -v /vendor/)
     - go vet $(go list ./... | grep -v /vendor/)
-    - go test -race $(go list ./... | grep -v /vendor/)
+    - go test
   allow_failure: true
 
 build:
@@ -38,6 +41,9 @@ build:
   artifacts:
     paths:
       - main
+  only:
+    - main
+    - merge_requests
 
 push:
   stage: push
@@ -50,3 +56,6 @@ push:
     - docker build --cache-from $IMAGE_DIR:latest --file ./Dockerfile  --tag $IMAGE_DIR:latest .
     - docker push $IMAGE_DIR:latest
     - docker image prune --all --force
+  only:
+    - main
+    - merge_requests
