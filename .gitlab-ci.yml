@@ -13,7 +13,7 @@ test:
   services:
     - name: postgres:14
       alias: pgsql
-    - name: redis
+    - name: redis:alpine
       alias: redis
   variables:
     POSTGRES_DB: shorjiga_test
@@ -36,7 +36,7 @@ build:
   stage: build
   image: golang:latest
   script:
-    - go build -o main .
+    - go build -o main . $(go list ./... | grep -v /vendor/)
   allow_failure: true
   artifacts:
     paths:
