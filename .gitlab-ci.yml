@@ -16,13 +16,16 @@ test:
     - name: redis
       alias: redis
   variables:
-    DB_HOST: shorjiga_test
-    DB_PORT: 5432
-    DB_USER: postgres
-    DB_PASSWORD: postgres
+    POSTGRES_DB: shorjiga_test
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: password
     POSTGRES_HOST_AUTH_METHOD: trust
     REDIS_HOST: redis
-    REDIS_PORT: 6379
+
+    DB_HOST: pgsql
+    DB_NAME: shorjiga_test
+    DB_USER: postgres
+    DB_PASSWORD: password
   script:
     - go fmt $(go list ./... | grep -v /vendor/)
     - go vet $(go list ./... | grep -v /vendor/)
