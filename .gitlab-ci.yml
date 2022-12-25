@@ -43,6 +43,7 @@ build:
       - main
   only:
     - main
+    - merge_requests
 
 push:
   stage: push
@@ -57,3 +58,4 @@ push:
     - docker image prune --all --force
   only:
     - main
+    - merge_requests
