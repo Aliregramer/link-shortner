@@ -36,11 +36,13 @@ build:
   stage: build
   image: golang:latest
   script:
-    - go build -o main . $(go list ./... | grep -v /vendor/)
+    - go build -o main .
   allow_failure: true
   artifacts:
     paths:
       - main
+  only:
+    - main
 
 push:
   stage: push
@@ -53,3 +55,5 @@ push:
     - docker build --cache-from $IMAGE_DIR:latest --file ./Dockerfile  --tag $IMAGE_DIR:latest .
     - docker push $IMAGE_DIR:latest
     - docker image prune --all --force
+  only:
+    - main
