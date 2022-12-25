@@ -7,6 +7,7 @@ import (
 	// "os"
 	"strconv"
 
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -31,21 +32,49 @@ type State struct {
 }
 
 func Migration() {
-	db := Connection()
+	appMode := h.Getenv("APP_MODE", "development")
+
+	var db *gorm.DB
+	if appMode == "test" {
+		dbname := h.Getenv("DB_NAME", "shorjiga_test")
+		createDatabase(dbname)
+		db = testConnection()
+	} else {
+		db = Connection()
+	}
 
 	// auto migrate all models
 	db.AutoMigrate(&Url{})
 	db.AutoMigrate(&State{})
 }
 
-func Connection() *gorm.DB {
-	host := h.Getenv("DB_HOST", "127.0.0.2")
+func createDatabase(databaseName string) {
+	host := h.Getenv("DB_HOST", "127.0.0.1")
 	port := h.Getenv("DB_PORT", "5432")
+	user := h.Getenv("DB_USER", "postgres")
+	password := h.Getenv("DB_PASSWORD", "postgres")
+	timezone := h.Getenv("DB_TIMEZONE", "Asia/Tehran")
+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s sslmode=disable TimeZone=%s", host, port, user, password, timezone)
+	DB, _ := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
+	// createDatabaseCommand := fmt.Sprintf("DROP DATABASE %s", databaseName)
+	// DB.Exec(createDatabaseCommand)
+
+	createDatabaseCommand := fmt.Sprintf("CREATE DATABASE %s", databaseName)
+	DB.Exec(createDatabaseCommand)
+}
+
+func Connection() *gorm.DB {
+	godotenv.Load()
+	host := h.Getenv("DB_HOST", "127.0.0.1")
+	port := h.Getenv("DB_PORT", "5432")
+	dbname := h.Getenv("DB_NAME", "shorjiga")
 	user := h.Getenv("DB_USER", "postgres")
 	password := h.Getenv("DB_PASSWORD", "postgres")
 	sslmode := h.Getenv("DB_SSLMODE", "disable")
 
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s sslmode=%s", host, port, user, password, sslmode)
+	dsn := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=%s", host, port, dbname, user, password, sslmode)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		// Logger: logger.Default.LogMode(logger.Silent),
@@ -57,13 +86,14 @@ func Connection() *gorm.DB {
 }
 
 func testConnection() *gorm.DB {
-	host := h.Getenv("DB_HOST", "127.0.0.2")
+	host := h.Getenv("DB_HOST", "127.0.0.1")
 	port := h.Getenv("DB_PORT", "5432")
 	user := h.Getenv("DB_USER", "postgres")
 	password := h.Getenv("DB_PASSWORD", "postgres")
 	sslmode := h.Getenv("DB_SSLMODE", "disable")
+	dbname := h.Getenv("DB_NAME", "shorjiga_test")
 
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s sslmode=%s", host, port, user, password, sslmode)
+	dsn := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s", host, port, user, dbname, password, sslmode)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		// Logger: logger.Default.LogMode(logger.Silent),
