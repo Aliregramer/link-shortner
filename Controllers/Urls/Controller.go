@@ -164,6 +164,8 @@ func Show(c *gin.Context) {
 		UpdatedAt:   url.UpdatedAt,
 	}
 
+	//TODO: add finded url in redis
+
 	c.JSON(http.StatusOK, gin.H{
 		"data": response,
 	})

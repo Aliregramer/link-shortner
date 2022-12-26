@@ -40,6 +40,8 @@ func Migration() {
 		createDatabase(dbname)
 		db = testConnection()
 	} else {
+		dbname := h.Getenv("DB_NAME", "shorjiga")
+		createDatabase(dbname)
 		db = Connection()
 	}
 

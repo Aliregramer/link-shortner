@@ -2,7 +2,7 @@ version: '3.8'
 services:
   app:
     # build go app
-    build: .
+    image: shorjiga
     restart: always
     ports:
       - '9090:9090'
@@ -34,8 +34,8 @@ services:
     restart: always
     ports:
       - '6379:6379'
-    volumes:
-      - redis:/data
+    # volumes:
+    #   - redis:/data
 volumes:
   db:
     driver: local
