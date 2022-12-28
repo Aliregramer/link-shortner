@@ -2,21 +2,21 @@ version: '3.8'
 services:
   app:
     # build go app
+    # build: .
     image: shorjiga
     restart: always
     ports:
       - '9090:9090'
     depends_on:
       - db
+      - redis
     environment:
       - DB_HOST=db
-      - DB_PORT=5432
       - DB_USER=postgres
       - DB_PASSWORD=postgres
-      - DB_NAME=postgres
+      - DB_NAME=shirjiga_db
       - DB_SSLMODE=disable
       - REDIS_HOST=redis
-      - REDIS_PORT=6379
 
   db:
     image: postgres

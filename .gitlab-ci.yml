@@ -22,6 +22,7 @@ test:
     POSTGRES_HOST_AUTH_METHOD: trust
     REDIS_HOST: redis
 
+    APP_MODE: test # todo: create env test
     DB_HOST: pgsql
     DB_NAME: shorjiga_test
     DB_USER: postgres

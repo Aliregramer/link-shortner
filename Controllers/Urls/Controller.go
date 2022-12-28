@@ -16,13 +16,13 @@ import (
 	h "shorjiga/Helper"
 )
 
-var db = Connection.Connection()
 var Redis = Connection.RedisClient()
 
 func Index(c *gin.Context) {
 	url := Connection.Url{}
 	var urls []Connection.Url
 
+	db := Connection.Connection()
 	db.Preload("States").Model(url).Scopes(Connection.Paginate(c.Request)).Find(&urls)
 
 	// create response
@@ -59,6 +59,7 @@ func Index(c *gin.Context) {
 
 func Store(c *gin.Context) {
 	fullUrl := c.PostForm("fullUrl")
+	db := Connection.Connection()
 
 	var count int64
 	db.Where("full_url = ?", fullUrl).Count(&count)
@@ -122,6 +123,8 @@ func Store(c *gin.Context) {
 func Show(c *gin.Context) {
 	id := c.Param("id")
 	url := Connection.Url{}
+	db := Connection.Connection()
+
 	result := db.Where("id = ?", id).First(&url)
 	if result.RowsAffected == 0 {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -174,6 +177,8 @@ func Show(c *gin.Context) {
 func Update(c *gin.Context) {
 	id := c.Param("id")
 	url := Connection.Url{}
+	db := Connection.Connection()
+
 	result := db.Where("id = ?", id).First(&url)
 	if result.RowsAffected == 0 {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -244,6 +249,8 @@ func Update(c *gin.Context) {
 func Destroy(c *gin.Context) {
 	id := c.Param("id")
 	url := Connection.Url{}
+	db := Connection.Connection()
+
 	result := db.Where("id = ?", id).Delete(&url)
 	if result.Error != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
@@ -268,12 +275,14 @@ func Destroy(c *gin.Context) {
 func Redirect(c *gin.Context) {
 	shortUrl := c.Param("url")
 	shortUrl = strings.ReplaceAll(shortUrl, "/", "")
+	db := Connection.Connection()
 
 	result := Redis.Get("urls:" + shortUrl)
 
 	var full_url string
 	if result.Val() == "" {
 		url := Connection.Url{}
+		
 		result := db.Where("short_url = ?", shortUrl).First(&url)
 
 		if result.Error != nil && result.RowsAffected == 0 {
@@ -330,6 +339,8 @@ func createShortUrl(length int, valid_char []string) string {
 
 func checkShortUrlExists(short_url string) bool {
 	var count int64
+	db := Connection.Connection()
+
 	db.Table("urls").Where("short_url = ?", short_url).Count(&count)
 	if count > 0 {
 		return true
@@ -345,6 +356,7 @@ func saveInRedis(url Connection.Url) {
 func createState(full_url string, c *gin.Context) {
 	url := Connection.Url{}
 	state := Connection.State{}
+	db := Connection.Connection()
 
 	db.Where("full_url = ?", full_url).First(&url)
 

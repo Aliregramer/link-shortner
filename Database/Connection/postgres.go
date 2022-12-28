@@ -7,7 +7,6 @@ import (
 	// "os"
 	"strconv"
 
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -68,7 +67,6 @@ func createDatabase(databaseName string) {
 }
 
 func Connection() *gorm.DB {
-	godotenv.Load()
 	host := h.Getenv("DB_HOST", "127.0.0.1")
 	port := h.Getenv("DB_PORT", "5432")
 	dbname := h.Getenv("DB_NAME", "shorjiga")
