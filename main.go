@@ -16,7 +16,7 @@ import (
 
 func main() {
 
-	loadDotEnv()
+	// loadDotEnv()
 
 	db.Migration()
 
