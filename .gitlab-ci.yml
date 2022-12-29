@@ -38,6 +38,7 @@ build:
   stage: build
   image: golang:latest
   script:
+    - export CGO_ENABLED=0
     - go build -o main .
   allow_failure: true
   artifacts:
