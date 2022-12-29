@@ -326,7 +326,7 @@ func handleFullUrl(c *gin.Context, db *gorm.DB, full_url string) (string, error)
 		return "", errors.New("url already exists")
 	}
 
-	return full_url, nil
+	return fullUrl, nil
 }
 
 func createShortUrl(length int, valid_char []string) string {
