@@ -38,7 +38,7 @@ func main() {
 		authorized.GET("/", UrlController.Index)
 		authorized.POST("/", UrlController.Store)
 		authorized.PUT("/:id", UrlController.Update)
-		authorized.GET("/show/:id", UrlController.Show) // TODO: validate id type
+		authorized.GET("/show/:id", UrlController.Show)
 		authorized.DELETE("/:id", UrlController.Destroy)
 	}
 

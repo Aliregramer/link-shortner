@@ -3,6 +3,7 @@ package Connection
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	// "os"
 	"strconv"
@@ -16,10 +17,11 @@ import (
 
 type Url struct {
 	gorm.Model
-	ShortUrl    string `json:"short_url" gorm:"uniqueIndex"`
-	FullUrl     string `json:"full_url" gorm:"Index"`
-	Title       string `json:"title" gorm:"unique, default:null"`
-	Description string `json:"description" gorm:"default:null"`
+	ShortUrl    string    `json:"short_url" gorm:"uniqueIndex"`
+	FullUrl     string    `json:"full_url" gorm:"Index"`
+	Title       string    `json:"title" gorm:"unique, default:null"`
+	Description string    `json:"description" gorm:"default:null"`
+	ExpireAt    string `json:"expire_at" gorm:"default:null"`
 	States      []State
 }
 
@@ -44,9 +46,23 @@ func Migration() {
 		db = Connection()
 	}
 
+	//193.151.129.193:9090
+
 	// auto migrate all models
 	db.AutoMigrate(&Url{})
 	db.AutoMigrate(&State{})
+
+	// set scheduler for delete expired urls
+	go func() {
+		for {
+			var urls []Url
+			db.Where("expire_at < ?", time.Now()).Find(&urls)
+			for _, url := range urls {
+				db.Delete(&url)
+			}
+			time.Sleep(30 * time.Minute)
+		}
+	}()
 }
 
 func createDatabase(databaseName string) {

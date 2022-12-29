@@ -2,21 +2,20 @@ package UrlController
 
 import (
 	"encoding/json"
+	"errors"
 	"math/rand"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	// local
 	"shorjiga/Database/Connection"
 	h "shorjiga/Helper"
 )
-
-var Redis = Connection.RedisClient()
 
 func Index(c *gin.Context) {
 	url := Connection.Url{}
@@ -58,51 +57,61 @@ func Index(c *gin.Context) {
 }
 
 func Store(c *gin.Context) {
-	fullUrl := c.PostForm("fullUrl")
-	db := Connection.Connection()
-
-	var count int64
-	db.Where("full_url = ?", fullUrl).Count(&count)
-	if count != 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "link exists",
-		})
+	type params struct {
+		FullUrl     string `json:"full_url" form:"full_url" binding:"required"`
+		Title       string `json:"title" form:"title" binding:"required|max=255"`
+		ShortUrlLen int    `json:"short_url_len" form:"short_url_len" binding:"min=1|max=255"`
+		Description string `json:"description" form:"description" binding:"max=255"`
 	}
-
-	if !strings.HasPrefix(fullUrl, os.Getenv("BASE_FULL_URL")) {
+	// validate input
+	var inputs params
+	if err := c.ShouldBind(&inputs); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
-			"message": "inserted url must start with " + os.Getenv("BASE_FULL_URL"),
+			"message": err.Error(),
 		})
 		return
 	}
 
-	// read len of short url if not set default 3
-	var shortUrlLen int
-	if c.PostForm("short_url_len") != "" {
-		shortUrlLen, _ = strconv.Atoi(c.PostForm("short_url_len"))
-		if shortUrlLen < 1 {
+	db := Connection.Connection()
+	fullUrl, err := handleFullUrl(c, db, inputs.FullUrl)
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	// validate expire_at
+	var expire_at time.Time
+	if len(c.PostForm("expire_at")) != 0 {
+		println(c.PostForm("expire_at"))
+		expire_at, _ = time.Parse("2006-01-02 15:04", c.PostForm("expire_at"))
+		if expire_at.Format("2006-01-02 15:04:00") == "0001-01-01 00:00:00" {
 			c.JSON(http.StatusUnprocessableEntity, gin.H{
-				"message": "short url len must be greater than 0",
+				"message": "Invalid expire_at format",
 			})
 			return
 		}
-	} else {
-		shortUrlLen = 3
+	}
+
+	// read len of short url if not set default 3
+	if inputs.ShortUrlLen == 0 {
+		inputs.ShortUrlLen = 3
 	}
 
 	// json decode valid_char
 	var valid_char []string
 	json.Unmarshal([]byte(c.PostForm("valid_char")), &valid_char)
 
-	shortUrl := createShortUrl(shortUrlLen, valid_char)
-
+	shortUrl := createShortUrl(inputs.ShortUrlLen, valid_char)
 	url := Connection.Url{}
-	url.Title = c.PostForm("title")
-	url.Description = c.PostForm("description")
+	url.Title = inputs.Title
+	url.Description = inputs.Description
 	url.ShortUrl = shortUrl
-	url.FullUrl = fullUrl[len(os.Getenv("BASE_FULL_URL"))+1:]
+	url.FullUrl = fullUrl
 	url.CreatedAt = time.Now()
 	url.UpdatedAt = time.Now()
+	url.ExpireAt = expire_at.Format("2006-01-02 15:04:00")
 
 	result := db.Model(&url).Save(&url)
 	if result.Error != nil {
@@ -167,7 +176,7 @@ func Show(c *gin.Context) {
 		UpdatedAt:   url.UpdatedAt,
 	}
 
-	//TODO: add finded url in redis
+	go saveInRedis(url)
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": response,
@@ -264,6 +273,7 @@ func Destroy(c *gin.Context) {
 		return
 	}
 
+	var Redis = Connection.RedisClient()
 	// delete from redis
 	Redis.Del("urls:" + url.ShortUrl)
 
@@ -277,12 +287,13 @@ func Redirect(c *gin.Context) {
 	shortUrl = strings.ReplaceAll(shortUrl, "/", "")
 	db := Connection.Connection()
 
+	var Redis = Connection.RedisClient()
 	result := Redis.Get("urls:" + shortUrl)
 
 	var full_url string
 	if result.Val() == "" {
 		url := Connection.Url{}
-		
+
 		result := db.Where("short_url = ?", shortUrl).First(&url)
 
 		if result.Error != nil && result.RowsAffected == 0 {
@@ -299,6 +310,23 @@ func Redirect(c *gin.Context) {
 	go createState(full_url, c)
 
 	c.Redirect(302, os.Getenv("BASE_FULL_URL")+"/"+full_url) // todo throw error if not found
+}
+
+func handleFullUrl(c *gin.Context, db *gorm.DB, full_url string) (string, error) {
+	// check if full url is valid
+	if !strings.HasPrefix(full_url, os.Getenv("BASE_FULL_URL")) {
+
+		return "", errors.New("inserted url must start with " + os.Getenv("BASE_FULL_URL"))
+	}
+	fullUrl := strings.TrimPrefix(full_url, os.Getenv("BASE_FULL_URL")) // remove base url from full url
+
+	var count int64
+	db.Where("full_url = ?", fullUrl).Count(&count)
+	if count != 0 {
+		return "", errors.New("url already exists")
+	}
+
+	return full_url, nil
 }
 
 func createShortUrl(length int, valid_char []string) string {
@@ -350,6 +378,7 @@ func checkShortUrlExists(short_url string) bool {
 }
 
 func saveInRedis(url Connection.Url) {
+	var Redis = Connection.RedisClient()
 	Redis.Set("urls:"+url.ShortUrl, url.FullUrl, 0)
 }
 
