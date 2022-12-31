@@ -161,6 +161,7 @@ func Show(c *gin.Context) {
 		Full_url    string          `json:"full_url"`
 		CreatedAt   time.Time       `json:"created_at"`
 		UpdatedAt   time.Time       `json:"updated_at"`
+		ExpireAt    string          `json:"expire_at"`
 		Clicked     int             `json:"clicked"`
 		State       []StateResponse `json:"state"`
 	}
@@ -174,6 +175,7 @@ func Show(c *gin.Context) {
 		State:       statesResponse,
 		CreatedAt:   url.CreatedAt,
 		UpdatedAt:   url.UpdatedAt,
+		ExpireAt:    url.ExpireAt,
 	}
 
 	go saveInRedis(url)
@@ -184,6 +186,21 @@ func Show(c *gin.Context) {
 }
 
 func Update(c *gin.Context) {
+	type params struct {
+		FullUrl     string `json:"full_url" form:"full_url"`
+		Title       string `json:"title" form:"title" binding:"max=255"`
+		ShortUrlLen int    `json:"short_url_len" form:"short_url_len" binding:"min=1|max=255"`
+		Description string `json:"description" form:"description" binding:"max=255"`
+	}
+	// validate input
+	var inputs params
+	if err := c.ShouldBind(&inputs); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
 	id := c.Param("id")
 	url := Connection.Url{}
 	db := Connection.Connection()
@@ -210,6 +227,8 @@ func Update(c *gin.Context) {
 				return
 			}
 			url.ShortUrl = value[0]
+		} else if key == "description" {
+			url.Description = value[0]
 		}
 	}
 
@@ -225,29 +244,41 @@ func Update(c *gin.Context) {
 	// update in redis
 	go saveInRedis(url)
 
-	// create response
-	type Response struct {
-		Id          uint      `json:"id"`
-		Title       string    `json:"title"`
-		Description string    `json:"description"`
-		Short_url   string    `json:"short_url"`
-		Full_url    string    `json:"full_url"`
-		Clicked     int       `json:"clicked"`
-		CreatedAt   time.Time `json:"created_at"`
-		UpdatedAt   time.Time `json:"updated_at"`
+	type StateResponse struct {
+		Ip        string `json:"ip"`
+		UserAgent string `json:"user_agent"`
+		CreatedAt string `json:"created_at"`
 	}
 
-	var response []Response
-	response = append(response, Response{
+	states := []Connection.State{}
+	statesResponse := []StateResponse{}
+	db.Model(states).Where("url_id = ?", id).Order("created_at desc").Limit(100).Find(&statesResponse)
+
+	// create response
+	type Response struct {
+		Id          uint            `json:"id"`
+		Title       string          `json:"title"`
+		Description string          `json:"description"`
+		ShortUrl    string          `json:"short_url"`
+		FullUrl     string          `json:"full_url"`
+		CreatedAt   time.Time       `json:"created_at"`
+		UpdatedAt   time.Time       `json:"updated_at"`
+		ExpireAt    string          `json:"expire_at"`
+		Clicked     int             `json:"clicked"`
+		State       []StateResponse `json:"state"`
+	}
+	response := Response{
 		Id:          url.ID,
 		Title:       url.Title,
 		Description: url.Description,
-		Short_url:   h.Getenv("BASE_SHORT_URL", "jajiga.com") + "/" + url.ShortUrl,
-		Full_url:    h.Getenv("BASE_FULL_URL", "https://www.jajiga.com") + "/" + url.FullUrl,
-		Clicked:     len(url.States),
+		ShortUrl:    h.Getenv("BASE_SHORT_URL", "jajiga.com") + "/" + url.ShortUrl,
+		FullUrl:     h.Getenv("BASE_FULL_URL", "https://www.jajiga.com") + "/" + url.FullUrl,
+		Clicked:     len(statesResponse),
+		State:       statesResponse,
 		CreatedAt:   url.CreatedAt,
 		UpdatedAt:   url.UpdatedAt,
-	})
+		ExpireAt:    url.ExpireAt,
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Item updated",

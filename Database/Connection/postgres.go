@@ -17,10 +17,10 @@ import (
 
 type Url struct {
 	gorm.Model
-	ShortUrl    string    `json:"short_url" gorm:"uniqueIndex"`
-	FullUrl     string    `json:"full_url" gorm:"Index"`
-	Title       string    `json:"title" gorm:"unique, default:null"`
-	Description string    `json:"description" gorm:"default:null"`
+	ShortUrl    string `json:"short_url" gorm:"uniqueIndex"`
+	FullUrl     string `json:"full_url" gorm:"Index"`
+	Title       string `json:"title" gorm:"unique, default:null"`
+	Description string `json:"description" gorm:"default:null"`
 	ExpireAt    string `json:"expire_at" gorm:"default:null"`
 	States      []State
 }
