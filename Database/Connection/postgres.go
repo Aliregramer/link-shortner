@@ -58,9 +58,9 @@ func Migration() {
 			var urls []Url
 			db.Where("expire_at < ?", time.Now()).Find(&urls)
 			for _, url := range urls {
-				db.Delete(&url)
+				db.Unscoped().Delete(&url)
 			}
-			time.Sleep(30 * time.Minute)
+			time.Sleep(24 * time.Hour)
 		}
 	}()
 }
