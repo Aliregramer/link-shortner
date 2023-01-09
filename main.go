@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -30,7 +31,12 @@ func main() {
 	// Recovery middleware recovers from any panics and writes a 500 if there was one.
 	r.Use(gin.Recovery())
 
-	authorized := r.Group("/l")
+	if (gin.Mode() == gin.DebugMode) {
+		r.Use(gin.Logger())
+	} // goodbye copilot :(
+	
+	authorized := r.Group(os.Getenv("PREFIX_URL"))
+
 	// per group middleware! in this case we use the custom created
 	// AuthRequired() middleware just in the "authorized" group.
 	authorized.Use(middleware.Handle)
