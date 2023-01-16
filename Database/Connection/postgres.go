@@ -27,7 +27,10 @@ type Url struct {
 
 type State struct {
 	gorm.Model
-	UrlID     uint   `json:"url_id" gorm:"Index" gorm:"ForeignKey:urls_id"`
+	UrlID     *uint  `json:"url_id" gorm:"Index,ForeignKey:urls_id,default:null"`
+	UtmSource string `json:"utm_source" gorm:"default:null"`
+	UtmMedium string `json:"utm_medium" gorm:"default:null"`
+	RoomId    string `json:"room_id" gorm:"default:null"`
 	Ip        string `json:"ip" gorm:"Index"`
 	UserAgent string `json:"user_agent" gorm:"Index"`
 }
@@ -45,8 +48,6 @@ func Migration() {
 		createDatabase(dbname)
 		db = Connection()
 	}
-
-	//193.151.129.193:9090
 
 	// auto migrate all models
 	db.AutoMigrate(&Url{})

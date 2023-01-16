@@ -6,10 +6,12 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/martinlindhe/base36"
 	"gorm.io/gorm"
 
 	// local
@@ -43,7 +45,7 @@ func Index(c *gin.Context) {
 			Id:          url.ID,
 			Title:       url.Title,
 			Description: url.Description,
-			Short_url:   h.Getenv("BASE_SHORT_URL", "jajiga.com") + "/" + url.ShortUrl,
+			Short_url:   h.Getenv("BASE_SHORT_URL", "j1g.com") + "/" + url.ShortUrl,
 			Full_url:    h.Getenv("BASE_FULL_URL", "https://www.jajiga.com") + "/" + url.FullUrl,
 			Clicked:     len(url.States),
 			CreatedAt:   url.CreatedAt,
@@ -169,7 +171,7 @@ func Show(c *gin.Context) {
 		Id:          url.ID,
 		Title:       url.Title,
 		Description: url.Description,
-		Short_url:   h.Getenv("BASE_SHORT_URL", "jajiga.com") + "/" + url.ShortUrl,
+		Short_url:   h.Getenv("BASE_SHORT_URL", "j1g.com") + "/" + url.ShortUrl,
 		Full_url:    h.Getenv("BASE_FULL_URL", "https://www.jajiga.com") + "/" + url.FullUrl,
 		Clicked:     len(statesResponse),
 		State:       statesResponse,
@@ -271,7 +273,7 @@ func Update(c *gin.Context) {
 		Id:          url.ID,
 		Title:       url.Title,
 		Description: url.Description,
-		ShortUrl:    h.Getenv("BASE_SHORT_URL", "jajiga.com") + "/" + url.ShortUrl,
+		ShortUrl:    h.Getenv("BASE_SHORT_URL", "j1g.com") + "/" + url.ShortUrl,
 		FullUrl:     h.Getenv("BASE_FULL_URL", "https://www.jajiga.com") + "/" + url.FullUrl,
 		Clicked:     len(statesResponse),
 		State:       statesResponse,
@@ -315,7 +317,9 @@ func Destroy(c *gin.Context) {
 
 func Redirect(c *gin.Context) {
 	shortUrl := c.Param("url")
+
 	shortUrl = strings.ReplaceAll(shortUrl, "/", "")
+
 	db := Connection.Connection()
 
 	var Redis = Connection.RedisClient()
@@ -341,6 +345,59 @@ func Redirect(c *gin.Context) {
 	go createState(full_url, c)
 
 	c.Redirect(302, os.Getenv("BASE_FULL_URL")+"/"+full_url) // todo throw error if not found
+}
+
+func RoomRedirect(c *gin.Context) {
+	roomIdBase36 := c.Param("url")
+	utm := c.Param("utm")
+
+	roomId := strconv.FormatUint(base36.Decode(roomIdBase36)+3139000, 10)
+
+	var utmParam string
+	if len(utm) != 0 {
+		utmParam = readUtmPart(utm)
+	}
+
+	go createStateForRoom(roomId, utmParam, c)
+
+	c.Redirect(302, os.Getenv("BASE_FULL_URL")+"/room/"+roomId+utmParam)
+}
+
+func readUtmPart(utm string) string {
+	result := "?"
+	switch utm[0] {
+	case 'd':
+		result += "utm_source=direct"
+	case 'e':
+		result += "utm_source=telegram"
+	case 'f':
+		result += "utm_source=facebook"
+	case 's':
+		result += "utm_source=sms"
+	case 't':
+		result += "utm_source=twitter"
+	case 'w':
+		result += "utm_source=whatsapp"
+	}
+
+	if len(utm) > 1 {
+		result += "&"
+		
+		switch utm[1] {
+		case 'r':
+			result += "utm_medium=room"
+		case 's':
+			result += "utm_medium=search"
+		case 'w':
+			result += "utm_medium=wishes"
+		}
+	}
+
+	if result == "?" {
+		result = ""
+	}
+
+	return result
 }
 
 func handleFullUrl(c *gin.Context, db *gorm.DB, full_url string) (string, error) {
@@ -420,8 +477,36 @@ func createState(full_url string, c *gin.Context) {
 
 	db.Where("full_url = ?", full_url).First(&url)
 
-	state.UrlID = url.ID
+	state.UrlID = &url.ID
 	state.Ip = c.ClientIP()
+	state.UserAgent = c.Request.UserAgent()
+	state.CreatedAt = time.Now()
+	state.UpdatedAt = time.Now()
+
+	db.Model(&state).Save(&state)
+}
+
+func createStateForRoom(roomId string, utm string, c *gin.Context) {
+	state := Connection.State{}
+	db := Connection.Connection()
+
+	if len(utm) != 0 {
+		utm = strings.ReplaceAll(utm, "?", "")
+		utmSlice:= strings.Split(utm, "&")
+
+		for _,param := range utmSlice {
+			if (strings.Contains(param, "utm_source")) {
+				state.UtmSource = strings.ReplaceAll(param, "utm_source=", "")
+			} else if  (strings.Contains(param, "utm_medium")) {
+				state.UtmMedium = strings.ReplaceAll(param, "utm_medium=", "")
+			}
+		}
+		
+	}
+
+	state.RoomId = roomId
+	state.Ip = c.ClientIP()
+	state.UrlID = nil
 	state.UserAgent = c.Request.UserAgent()
 	state.CreatedAt = time.Now()
 	state.UpdatedAt = time.Now()

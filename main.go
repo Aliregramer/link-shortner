@@ -48,7 +48,9 @@ func main() {
 		authorized.DELETE("/:id", UrlController.Destroy)
 	}
 
-	r.GET("/l/:url", UrlController.Redirect)
+	r.GET(os.Getenv("PREFIX_URL") + "/:url", UrlController.Redirect)
+	r.GET(os.Getenv("PREFIX_URL") + "/r/:url", UrlController.RoomRedirect)
+	r.GET(os.Getenv("PREFIX_URL") + "/r/:url/:utm", UrlController.RoomRedirect)
 
 	r.Run("0.0.0.0:9090")
 }
