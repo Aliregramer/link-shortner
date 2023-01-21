@@ -358,7 +358,7 @@ func RoomRedirect(c *gin.Context) {
 	if len(utm) != 0 {
 		utmParam = readUtmPart(utm)
 	}
-
+ 
 	go createStateForRoom(roomId, utmParam, c)
 
 	c.Redirect(302, os.Getenv("BASE_FULL_URL")+"/room/"+roomId+utmParam)
