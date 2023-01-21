@@ -123,7 +123,7 @@ func Store(c *gin.Context) {
 		return
 	}
 
-	go saveInRedis(url)
+	saveInRedis(url)
 
 	c.JSON(http.StatusOK, gin.H{
 		"short_url": os.Getenv("BASE_SHORT_URL") + "/" + shortUrl,
@@ -180,7 +180,7 @@ func Show(c *gin.Context) {
 		ExpireAt:    url.ExpireAt,
 	}
 
-	go saveInRedis(url)
+	saveInRedis(url)
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": response,
@@ -244,7 +244,7 @@ func Update(c *gin.Context) {
 	}
 
 	// update in redis
-	go saveInRedis(url)
+	saveInRedis(url)
 
 	type StateResponse struct {
 		Ip        string `json:"ip"`
@@ -338,6 +338,7 @@ func Redirect(c *gin.Context) {
 			return
 		}
 		full_url = url.FullUrl
+		go saveInRedis(url)
 	} else {
 		full_url = result.Val()
 	}
